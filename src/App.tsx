@@ -28,15 +28,15 @@ import { loadState, saveState } from "./lib/storage";
 import { getCoachMessage } from "./lib/aiCoach";
 
 const COLUMNS: { id: ColumnId; title: string }[] = [
-  { id: "todo", title: "Yapilacaklar" },
-  { id: "doing", title: "Yapiliyor" },
-  { id: "done", title: "Tamamlandi" }
+  { id: "todo", title: "Yapılacaklar" },
+  { id: "doing", title: "Yapılıyor" },
+  { id: "done", title: "Tamamlandı" }
 ];
 
 const PRIORITY_LABEL: Record<Priority, string> = {
-  low: "Dusuk",
+  low: "Düşük",
   medium: "Orta",
-  high: "Yuksek"
+  high: "Yüksek"
 };
 
 function playBeep() {
@@ -114,18 +114,10 @@ function TaskCard({
               {PRIORITY_LABEL[task.priority]}
             </span>
             <div className="flex gap-1">
-              <button
-                onClick={() => onToggle(task.id)}
-                className="rounded-lg p-1.5 text-neon/80 transition hover:bg-white/10"
-                title="Tamamla"
-              >
+              <button onClick={() => onToggle(task.id)} className="rounded-lg p-1.5 text-neon/80 transition hover:bg-white/10" title="Tamamla">
                 <Check size={14} />
               </button>
-              <button
-                onClick={() => onDelete(task.id)}
-                className="rounded-lg p-1.5 text-white/40 transition hover:bg-white/10 hover:text-rose-300"
-                title="Sil"
-              >
+              <button onClick={() => onDelete(task.id)} className="rounded-lg p-1.5 text-white/40 transition hover:bg-white/10 hover:text-rose-300" title="Sil">
                 <Trash2 size={14} />
               </button>
             </div>
@@ -139,10 +131,7 @@ function TaskCard({
 function Column({ id, title, tasks, children }: { id: ColumnId; title: string; tasks: Task[]; children: ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
-    <section
-      ref={setNodeRef}
-      className={`glass min-h-[280px] rounded-3xl p-4 transition ${isOver ? "ring-1 ring-neon/50" : ""}`}
-    >
+    <section ref={setNodeRef} className={`glass min-h-[280px] rounded-3xl p-4 transition ${isOver ? "ring-1 ring-neon/50" : ""}`}>
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold tracking-wide text-white/80">{title}</h2>
         <span className="rounded-full bg-white/5 px-2 py-0.5 text-xs text-neon">{tasks.length}</span>
@@ -166,14 +155,9 @@ export default function App() {
   const [muted, setMuted] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  useEffect(() => { saveState(state); }, [state]);
   useEffect(() => {
-    saveState(state);
-  }, [state]);
-
-  useEffect(() => {
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission();
-    }
+    if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
   }, []);
 
   useEffect(() => {
@@ -184,22 +168,12 @@ export default function App() {
           setRunning(false);
           playBeep();
           const finished = mode;
-          notify(
-            finished === "work" ? "Pomodoro bitti" : "Mola bitti",
-            finished === "work" ? "5 dakikalik mola zamani." : "Yeniden odaklanabilirsin."
-          );
+          notify(finished === "work" ? "Pomodoro bitti" : "Mola bitti", finished === "work" ? "5 dakikalik mola." : "Yeniden odaklan.");
           if (finished === "work") {
             setState((prev) => ({
               ...prev,
-              sessions: [
-                ...prev.sessions,
-                { id: createId(), mode: "work", durationSec: 25 * 60, completedAt: new Date().toISOString() }
-              ],
-              stats: {
-                ...prev.stats,
-                pomodorosToday: prev.stats.pomodorosToday + 1,
-                lastActiveAt: new Date().toISOString()
-              }
+              sessions: [...prev.sessions, { id: createId(), mode: "work", durationSec: 25 * 60, completedAt: new Date().toISOString() }],
+              stats: { ...prev.stats, pomodorosToday: prev.stats.pomodorosToday + 1, lastActiveAt: new Date().toISOString() }
             }));
             setMode("break");
             return 5 * 60;
@@ -216,10 +190,7 @@ export default function App() {
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
-    if (sound === "off" || muted) {
-      el.pause();
-      return;
-    }
+    if (sound === "off" || muted) { el.pause(); return; }
     el.src = sound === "rain" ? rainDataUri() : lofiDataUri();
     el.loop = true;
     el.volume = 0.35;
@@ -227,14 +198,11 @@ export default function App() {
   }, [sound, muted]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
-
-  const grouped = useMemo(() => {
-    return {
-      todo: state.tasks.filter((t) => t.column === "todo"),
-      doing: state.tasks.filter((t) => t.column === "doing"),
-      done: state.tasks.filter((t) => t.column === "done")
-    };
-  }, [state.tasks]);
+  const grouped = useMemo(() => ({
+    todo: state.tasks.filter((t) => t.column === "todo"),
+    doing: state.tasks.filter((t) => t.column === "doing"),
+    done: state.tasks.filter((t) => t.column === "done")
+  }), [state.tasks]);
 
   const coach = getCoachMessage(state, running && mode === "work", seconds);
   const mm = String(Math.floor(seconds / 60)).padStart(2, "0");
@@ -244,24 +212,11 @@ export default function App() {
     const value = (editing ? editing.title : title).trim();
     if (!value) return;
     if (editing) {
-      setState((prev) => ({
-        ...prev,
-        tasks: prev.tasks.map((t) =>
-          t.id === editing.id ? { ...editing, title: value, priority, updatedAt: new Date().toISOString() } : t
-        )
-      }));
-      setEditing(null);
-      setTitle("");
-      return;
+      setState((prev) => ({ ...prev, tasks: prev.tasks.map((t) => t.id === editing.id ? { ...editing, title: value, priority, updatedAt: new Date().toISOString() } : t) }));
+      setEditing(null); setTitle(""); return;
     }
     const now = new Date().toISOString();
-    setState((prev) => ({
-      ...prev,
-      tasks: [
-        ...prev.tasks,
-        { id: createId(), title: value, priority, column: "todo", createdAt: now, updatedAt: now }
-      ]
-    }));
+    setState((prev) => ({ ...prev, tasks: [...prev.tasks, { id: createId(), title: value, priority, column: "todo", createdAt: now, updatedAt: now }] }));
     setTitle("");
   }
 
@@ -272,21 +227,8 @@ export default function App() {
       const toDone = task.column !== "done";
       return {
         ...prev,
-        tasks: prev.tasks.map((t) =>
-          t.id === id
-            ? {
-                ...t,
-                column: toDone ? "done" : "todo",
-                completedAt: toDone ? new Date().toISOString() : undefined,
-                updatedAt: new Date().toISOString()
-              }
-            : t
-        ),
-        stats: {
-          ...prev.stats,
-          completedToday: Math.max(0, prev.stats.completedToday + (toDone ? 1 : -1)),
-          lastActiveAt: new Date().toISOString()
-        }
+        tasks: prev.tasks.map((t) => t.id === id ? { ...t, column: toDone ? "done" : "todo", completedAt: toDone ? new Date().toISOString() : undefined, updatedAt: new Date().toISOString() } : t),
+        stats: { ...prev.stats, completedToday: Math.max(0, prev.stats.completedToday + (toDone ? 1 : -1)), lastActiveAt: new Date().toISOString() }
       };
     });
   }
@@ -299,9 +241,7 @@ export default function App() {
     const { active, over } = event;
     if (!over) return;
     const overId = String(over.id);
-    const targetColumn: ColumnId = (["todo", "doing", "done"] as ColumnId[]).includes(overId as ColumnId)
-      ? (overId as ColumnId)
-      : state.tasks.find((t) => t.id === overId)?.column ?? "todo";
+    const targetColumn: ColumnId = (["todo", "doing", "done"] as ColumnId[]).includes(overId as ColumnId) ? (overId as ColumnId) : state.tasks.find((t) => t.id === overId)?.column ?? "todo";
     setState((prev) => {
       const current = prev.tasks.find((t) => t.id === active.id);
       if (!current || current.column === targetColumn) return prev;
@@ -309,21 +249,8 @@ export default function App() {
       const fromDone = current.column === "done" && targetColumn !== "done";
       return {
         ...prev,
-        tasks: prev.tasks.map((t) =>
-          t.id === active.id
-            ? {
-                ...t,
-                column: targetColumn,
-                completedAt: targetColumn === "done" ? new Date().toISOString() : undefined,
-                updatedAt: new Date().toISOString()
-              }
-            : t
-        ),
-        stats: {
-          ...prev.stats,
-          completedToday: Math.max(0, prev.stats.completedToday + (toDone ? 1 : fromDone ? -1 : 0)),
-          lastActiveAt: new Date().toISOString()
-        }
+        tasks: prev.tasks.map((t) => t.id === active.id ? { ...t, column: targetColumn, completedAt: targetColumn === "done" ? new Date().toISOString() : undefined, updatedAt: new Date().toISOString() } : t),
+        stats: { ...prev.stats, completedToday: Math.max(0, prev.stats.completedToday + (toDone ? 1 : fromDone ? -1 : 0)), lastActiveAt: new Date().toISOString() }
       };
     });
   }
@@ -340,7 +267,6 @@ export default function App() {
           <span className="rounded-full border border-white/10 px-3 py-1">{state.stats.pomodorosToday} pomodoro</span>
         </div>
       </header>
-
       <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
         <aside className="space-y-4">
           <section className="glass rounded-3xl p-5">
@@ -349,126 +275,56 @@ export default function App() {
                 <Clock3 size={18} />
                 <span className="text-sm font-medium">{mode === "work" ? "Calisma" : "Mola"}</span>
               </div>
-              <button
-                onClick={() => {
-                  setRunning(false);
-                  setMode("work");
-                  setSeconds(25 * 60);
-                }}
-                className="text-xs text-white/50 hover:text-white"
-              >
-                Sifirla
-              </button>
+              <button onClick={() => { setRunning(false); setMode("work"); setSeconds(25 * 60); }} className="text-xs text-white/50 hover:text-white">Sifirla</button>
             </div>
             <div className="mb-5 text-center font-semibold tabular-nums text-5xl tracking-tight text-white">{mm}:{ss}</div>
             <div className="flex gap-2">
-              <button
-                onClick={() => setRunning((v) => !v)}
-                className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-neon/90 px-4 py-2.5 font-medium text-night transition hover:bg-neon"
-              >
+              <button onClick={() => setRunning((v) => !v)} className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-neon/90 px-4 py-2.5 font-medium text-night transition hover:bg-neon">
                 {running ? <Pause size={16} /> : <Play size={16} />}
                 {running ? "Duraklat" : "Baslat"}
               </button>
-              <button
-                onClick={() => {
-                  setRunning(false);
-                  if (mode === "work") {
-                    setMode("break");
-                    setSeconds(5 * 60);
-                  } else {
-                    setMode("work");
-                    setSeconds(25 * 60);
-                  }
-                }}
-                className="rounded-2xl border border-white/10 px-3 text-sm text-white/70 transition hover:border-neon/40"
-              >
-                Atlama
-              </button>
+              <button onClick={() => { setRunning(false); if (mode === "work") { setMode("break"); setSeconds(5 * 60); } else { setMode("work"); setSeconds(25 * 60); } }} className="rounded-2xl border border-white/10 px-3 text-sm text-white/70 transition hover:border-neon/40">Atla</button>
             </div>
           </section>
-
           <section className="glass rounded-3xl p-5">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm">
                 {sound === "rain" ? <CloudRain size={16} className="text-neon" /> : <Headphones size={16} className="text-neon" />}
                 Ortam sesi
               </div>
-              <button onClick={() => setMuted((m) => !m)} className="text-white/60 hover:text-white">
-                {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-              </button>
+              <button onClick={() => setMuted((m) => !m)} className="text-white/60 hover:text-white">{muted ? <VolumeX size={16} /> : <Volume2 size={16} />}</button>
             </div>
             <div className="grid grid-cols-3 gap-2">
               {(["off", "lofi", "rain"] as const).map((opt) => (
-                <button
-                  key={opt}
-                  onClick={() => setSound(opt)}
-                  className={`rounded-xl px-2 py-2 text-xs transition ${
-                    sound === opt ? "bg-neon/20 text-neon" : "bg-white/5 text-white/60 hover:bg-white/10"
-                  }`}
-                >
+                <button key={opt} onClick={() => setSound(opt)} className={`rounded-xl px-2 py-2 text-xs transition ${sound === opt ? "bg-neon/20 text-neon" : "bg-white/5 text-white/60 hover:bg-white/10"}`}>
                   {opt === "off" ? "Kapali" : opt === "lofi" ? "Lo-Fi" : "Yagmur"}
                 </button>
               ))}
             </div>
             <audio ref={audioRef} />
           </section>
-
           <section className="glass rounded-3xl p-5">
-            <div className="mb-2 flex items-center gap-2 text-sm text-neon">
-              <Sparkles size={16} />
-              AI performans kocu
-            </div>
+            <div className="mb-2 flex items-center gap-2 text-sm text-neon"><Sparkles size={16} /> AI performans kocu</div>
             <p className="text-sm leading-6 text-white/80">{coach.text}</p>
-            <p className="mt-3 text-[11px] uppercase tracking-wide text-white/35">
-              Mock koc — ileride API baglanabilir
-            </p>
+            <p className="mt-3 text-[11px] uppercase tracking-wide text-white/35">Mock koc — API hazir</p>
           </section>
         </aside>
-
         <main className="space-y-4">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              addTask();
-            }}
-            className="glass flex flex-col gap-3 rounded-3xl p-4 sm:flex-row sm:items-center"
-          >
-            <input
-              value={editing ? editing.title : title}
-              onChange={(e) => (editing ? setEditing({ ...editing, title: e.target.value }) : setTitle(e.target.value))}
-              placeholder="Yeni gorev ekle..."
-              className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm outline-none transition placeholder:text-white/30 focus:border-neon/50"
-            />
-            <select
-              value={priority}
-              onChange={(e) => setPriority(e.target.value as Priority)}
-              className="rounded-2xl border border-white/10 bg-night px-3 py-2.5 text-sm outline-none"
-            >
+          <form onSubmit={(e) => { e.preventDefault(); addTask(); }} className="glass flex flex-col gap-3 rounded-3xl p-4 sm:flex-row sm:items-center">
+            <input value={editing ? editing.title : title} onChange={(e) => (editing ? setEditing({ ...editing, title: e.target.value }) : setTitle(e.target.value))} placeholder="Yeni gorev ekle..." className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm outline-none transition placeholder:text-white/30 focus:border-neon/50" />
+            <select value={priority} onChange={(e) => setPriority(e.target.value as Priority)} className="rounded-2xl border border-white/10 bg-night px-3 py-2.5 text-sm outline-none">
               <option value="low">Dusuk</option>
               <option value="medium">Orta</option>
               <option value="high">Yuksek</option>
             </select>
-            <button className="inline-flex items-center justify-center gap-2 rounded-2xl bg-neon px-4 py-2.5 text-sm font-medium text-night transition hover:shadow-neon">
-              <Plus size={16} />
-              {editing ? "Kaydet" : "Ekle"}
-            </button>
+            <button className="inline-flex items-center justify-center gap-2 rounded-2xl bg-neon px-4 py-2.5 text-sm font-medium text-night transition hover:shadow-neon"><Plus size={16} />{editing ? "Kaydet" : "Ekle"}</button>
           </form>
-
           <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={onDragEnd}>
             <div className="grid gap-4 md:grid-cols-3">
               {COLUMNS.map((col) => (
                 <Column key={col.id} id={col.id} title={col.title} tasks={grouped[col.id]}>
                   {grouped[col.id].map((task) => (
-                    <TaskCard
-                      key={task.id}
-                      task={task}
-                      onToggle={toggleDone}
-                      onDelete={removeTask}
-                      onEdit={(t) => {
-                        setEditing(t);
-                        setPriority(t.priority);
-                      }}
-                    />
+                    <TaskCard key={task.id} task={task} onToggle={toggleDone} onDelete={removeTask} onEdit={(t) => { setEditing(t); setPriority(t.priority); }} />
                   ))}
                 </Column>
               ))}
@@ -480,43 +336,18 @@ export default function App() {
   );
 }
 
-function rainDataUri() {
-  return tinyNoiseWav(0.018);
-}
-
-function lofiDataUri() {
-  return tinyNoiseWav(0.01);
-}
-
+function rainDataUri() { return tinyNoiseWav(0.018); }
+function lofiDataUri() { return tinyNoiseWav(0.01); }
 function tinyNoiseWav(amp: number) {
-  const sampleRate = 8000;
-  const seconds = 2;
-  const n = sampleRate * seconds;
-  const buffer = new ArrayBuffer(44 + n);
-  const view = new DataView(buffer);
-  const write = (offset: number, str: string) => {
-    for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
-  };
-  write(0, "RIFF");
-  view.setUint32(4, 36 + n, true);
-  write(8, "WAVE");
-  write(12, "fmt ");
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true);
-  view.setUint16(22, 1, true);
-  view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate, true);
-  view.setUint16(32, 1, true);
-  view.setUint16(34, 8, true);
-  write(36, "data");
-  view.setUint32(40, n, true);
+  const sampleRate = 8000; const seconds = 2; const n = sampleRate * seconds;
+  const buffer = new ArrayBuffer(44 + n); const view = new DataView(buffer);
+  const write = (offset: number, str: string) => { for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i)); };
+  write(0, "RIFF"); view.setUint32(4, 36 + n, true); write(8, "WAVE"); write(12, "fmt ");
+  view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true); view.setUint32(28, sampleRate, true);
+  view.setUint16(32, 1, true); view.setUint16(34, 8, true); write(36, "data"); view.setUint32(40, n, true);
   let acc = 0;
-  for (let i = 0; i < n; i++) {
-    acc = acc * 0.98 + (Math.random() * 2 - 1) * amp * 40;
-    view.setUint8(44 + i, Math.max(0, Math.min(255, 128 + acc)));
-  }
-  const bytes = new Uint8Array(buffer);
-  let bin = "";
-  bytes.forEach((b) => (bin += String.fromCharCode(b)));
+  for (let i = 0; i < n; i++) { acc = acc * 0.98 + (Math.random() * 2 - 1) * amp * 40; view.setUint8(44 + i, Math.max(0, Math.min(255, 128 + acc))); }
+  const bytes = new Uint8Array(buffer); let bin = ""; bytes.forEach((b) => (bin += String.fromCharCode(b)));
   return `data:audio/wav;base64,${btoa(bin)}`;
 }
